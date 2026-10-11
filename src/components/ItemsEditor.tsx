@@ -16,7 +16,7 @@ export function ItemsEditor({ rows, onChange, priceLabel = "Ціна" }: { rows:
   const set = (i: number, patch: Partial<EditItem>) => onChange(rows.map((r, k) => (k === i ? { ...r, ...patch } : r)));
   const onSku = (i: number, sku: string) => {
     const p = products.data?.find((x) => x.sku === sku.trim());
-    set(i, p ? { sku, name: p.name, price: rows[i].price || (p.cost ? String(p.cost) : "") } : { sku });
+    set(i, p ? { sku, name: p.name, price: rows[i]?.price || (p.cost ? String(p.cost) : "") } : { sku });
   };
   const total = toItems(rows).reduce((s, r) => s + (r.qty || 0) * (r.price || 0), 0);
 

@@ -1,6 +1,6 @@
 // Mocks — replace with fetch() calls to real backend later.
 import * as db from "./mockData";
-import type { DemandGroup, DemandRow, JournalEntry, Summary } from "./types";
+import type { DemandGroup, DemandRow, JournalEntry, Product, Summary } from "./types";
 
 const delay = <T,>(v: T, ms = 250): Promise<T> => new Promise((r) => setTimeout(() => r(structuredClone(v)), ms));
 

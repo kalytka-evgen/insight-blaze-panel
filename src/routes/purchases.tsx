@@ -17,7 +17,7 @@ import { exportCsv, fmtDate, fmtMoney, fmtNum } from "@/lib/format";
 import type { Purchase, PurchaseStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/purchases")({
-  validateSearch: (s: Record<string, unknown>): { new?: string } => (typeof s.new === "string" ? { new: s.new } : {}),
+  validateSearch: (s: Record<string, unknown>): { new?: string } => (typeof s["new"] === "string" ? { new: s["new"] } : {}),
   head: () => ({
     meta: [
       { title: "Закупки — GERTS адмін" },

@@ -16,7 +16,7 @@ import { api } from "@/lib/api";
 import { exportCsv, fmtDate, fmtMoney, fmtNum } from "@/lib/format";
 
 export const Route = createFileRoute("/receipts")({
-  validateSearch: (s: Record<string, unknown>): { purchase?: string } => (typeof s.purchase === "string" ? { purchase: s.purchase } : {}),
+  validateSearch: (s: Record<string, unknown>): { purchase?: string } => (typeof s["purchase"] === "string" ? { purchase: s["purchase"] } : {}),
   head: () => ({
     meta: [
       { title: "Приходи та партії — GERTS адмін" },
@@ -32,7 +32,7 @@ function ReceiptsPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [tab, setTab] = useState("receipts");
-  const [form, setForm] = useState<{ purchaseId?: string } | null>(null);
+  const [form, setForm] = useState<{ purchaseId?: string | undefined } | null>(null);
   useEffect(() => {
     if (search.purchase) { setForm({ purchaseId: search.purchase }); navigate({ to: ".", search: {}, replace: true }); }
   }, [search.purchase, navigate]);
@@ -137,7 +137,7 @@ function BatchesView() {
   );
 }
 
-function ReceiptForm({ purchaseId, onClose }: { purchaseId?: string; onClose: () => void }) {
+function ReceiptForm({ purchaseId, onClose }: { purchaseId?: string | undefined; onClose: () => void }) {
   const qc = useQueryClient();
   const contractors = useQuery({ queryKey: ["contractors"], queryFn: api.getContractors });
   const purchases = useQuery({ queryKey: ["purchases"], queryFn: api.getPurchases });

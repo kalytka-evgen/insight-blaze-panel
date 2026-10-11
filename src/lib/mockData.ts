@@ -29,7 +29,7 @@ export const specifications: Specification[] = [
     { sku: "hard10-n31", name: "Лист сталі Hardox 10 мм, 200х300", qty: 1 },
     { sku: "kr-0810", name: "Кронштейн підвісний 8х100", qty: 2 },
     { sku: "bolt-m10", name: "Болт М10х40 з гайкою", qty: 4 },
-    { sku: "farba-rd", name: "Фарба порошкова червона, 1 кг", qty: 0.2 },
+    { sku: "farba-rd", name: "Фарба порошкова червона, 1 кг", qty: 1 },
   ] },
   { productSku: "gerts.021", productName: "Мішень гонг «Коло 250»", components: [
     { sku: "hard10-n32", name: "Лист сталі Hardox 10 мм, коло 250", qty: 1 },
@@ -117,4 +117,30 @@ export const journal: JournalEntry[] = [
   { ts: "2026-10-03T11:47:00", user: "Склад", action: "Збірка", details: "Мішень гонг «Коло 250» ×2, собівартість 1 012,00 грн/шт" },
   { ts: "2026-10-02T16:25:00", user: "Власник", action: "Нова закупка", details: "КМ-556 — Крепіж-Маркет, 1 280,00 грн" },
   { ts: "2026-10-01T08:59:00", user: "Власник", action: "Нова задача", details: "Стійка «Тринога» ×2" },
+];
+
+/** Completed sales (for margin reports). Price per unit, UAH. */
+export const sales: { id: string; date: string; buyer: string; items: { sku: string; name: string; qty: number; price: number }[] }[] = [
+  { id: "4410", date: "2026-05-14", buyer: "Стрілецький клуб «Яструб»", items: [{ sku: "gerts.020", name: "Мішень гонг «Тарілка 200х300»", qty: 2, price: 2400 }, { sku: "05001", name: "Мішень картонна IPSC «Класика»", qty: 100, price: 35 }] },
+  { id: "4452", date: "2026-06-03", buyer: "ТОВ «Тактик-Про»", items: [{ sku: "gerts.035", name: "Мішень «Поппер IPSC»", qty: 3, price: 3100 }] },
+  { id: "4471", date: "2026-06-21", buyer: "Іван Петренко", items: [{ sku: "06010", name: "Мішень паперова №4 (50 шт)", qty: 6, price: 180 }, { sku: "07100", name: "Пластирі для мішеней (1000 шт)", qty: 2, price: 260 }] },
+  { id: "4502", date: "2026-07-09", buyer: "В/ч А1234", items: [{ sku: "gerts.020", name: "Мішень гонг «Тарілка 200х300»", qty: 5, price: 2300 }, { sku: "gerts.040", name: "Стійка під мішень «Тринога»", qty: 5, price: 1500 }] },
+  { id: "4528", date: "2026-08-02", buyer: "ФОП Коваленко О. В.", items: [{ sku: "05002", name: "Мішень картонна «Мініпоппер»", qty: 300, price: 24 }] },
+  { id: "4549", date: "2026-08-27", buyer: "ТОВ «Полігон-Схід»", items: [{ sku: "gerts.021", name: "Мішень гонг «Коло 250»", qty: 4, price: 2100 }, { sku: "05001", name: "Мішень картонна IPSC «Класика»", qty: 200, price: 34 }] },
+  { id: "4566", date: "2026-09-19", buyer: "Андрій Мельник", items: [{ sku: "gerts.035", name: "Мішень «Поппер IPSC»", qty: 1, price: 3200 }, { sku: "06011", name: "Мішень паперова «Грудна» №6", qty: 5, price: 210 }] },
+  { id: "4570", date: "2026-10-04", buyer: "Стрілецький клуб «Яструб»", items: [{ sku: "gerts.021", name: "Мішень гонг «Коло 250»", qty: 2, price: 2150 }, { sku: "05002", name: "Мішень картонна «Мініпоппер»", qty: 100, price: 24 }] },
+];
+
+/** Historical batches of finished/resale goods consumed by sales (FIFO). */
+export const salesBatches: StockBatch[] = [
+  { id: "sb1", sku: "gerts.020", name: "Мішень гонг «Тарілка 200х300»", date: "2026-05-01", qtyInitial: 10, qtyRemaining: 10, unitCost: 1290, source: "Збірка" },
+  { id: "sb2", sku: "gerts.035", name: "Мішень «Поппер IPSC»", date: "2026-05-20", qtyInitial: 4, qtyRemaining: 4, unitCost: 1480, source: "Збірка" },
+  { id: "sb3", sku: "gerts.040", name: "Стійка під мішень «Тринога»", date: "2026-06-25", qtyInitial: 7, qtyRemaining: 7, unitCost: 820, source: "Збірка" },
+  { id: "sb4", sku: "gerts.021", name: "Мішень гонг «Коло 250»", date: "2026-08-10", qtyInitial: 4, qtyRemaining: 4, unitCost: 990, source: "Збірка" },
+  { id: "sb5", sku: "gerts.021", name: "Мішень гонг «Коло 250»", date: "2026-10-03", qtyInitial: 2, qtyRemaining: 2, unitCost: 1012, source: "Збірка" },
+  { id: "sb6", sku: "05001", name: "Мішень картонна IPSC «Класика»", date: "2026-04-10", qtyInitial: 400, qtyRemaining: 400, unitCost: 18.5, source: "Прихід" },
+  { id: "sb7", sku: "05002", name: "Мішень картонна «Мініпоппер»", date: "2026-07-15", qtyInitial: 500, qtyRemaining: 500, unitCost: 12, source: "Прихід" },
+  { id: "sb8", sku: "06010", name: "Мішень паперова №4 (50 шт)", date: "2026-05-05", qtyInitial: 20, qtyRemaining: 20, unitCost: 95, source: "Прихід" },
+  { id: "sb9", sku: "06011", name: "Мішень паперова «Грудна» №6", date: "2026-05-05", qtyInitial: 20, qtyRemaining: 20, unitCost: 110, source: "Прихід" },
+  { id: "sb10", sku: "07100", name: "Пластирі для мішеней (1000 шт)", date: "2026-05-05", qtyInitial: 10, qtyRemaining: 10, unitCost: 145, source: "Прихід" },
 ];

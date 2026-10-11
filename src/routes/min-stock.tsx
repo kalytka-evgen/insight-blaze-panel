@@ -72,10 +72,10 @@ function MinStockPage() {
       />
       <div className="space-y-3 p-4 md:p-6">
         {low.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+          <div className="flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
             <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
-            <span><span className="font-semibold text-warning">{low.length}</span> позицій нижче мінімуму: {low.slice(0, 4).map((p) => p.name).join(", ")}{low.length > 4 ? "…" : ""}</span>
-            {!onlyLow && <Button variant="outline" size="sm" className="ml-auto" onClick={() => setOnlyLow(true)}>Показати</Button>}
+            <span className="flex-1"><span className="font-semibold text-warning">{low.length}</span> позицій нижче мінімуму: {low.slice(0, 4).map((p) => p.name).join(", ")}{low.length > 4 ? "…" : ""}</span>
+            {!onlyLow && <Button variant="outline" size="sm" className="shrink-0" onClick={() => setOnlyLow(true)}>Показати</Button>}
           </div>
         )}
         <div className="flex flex-wrap items-center gap-3">

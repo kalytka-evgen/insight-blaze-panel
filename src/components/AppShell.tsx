@@ -1,8 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { navItems } from "@/lib/nav";
+import { api } from "@/lib/api";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const products = useQuery({ queryKey: ["products"], queryFn: api.getProducts });
+  const lowCount = (products.data ?? []).filter((p) => p.stock < p.minStock).length;
   return (
     <div className="flex min-h-screen w-full">
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r bg-sidebar md:flex">
@@ -22,6 +26,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <i.icon className="h-4 w-4" />
               {i.label}
+              {i.to === "/min-stock" && lowCount > 0 && (
+                <span title="Позицій нижче мінімуму" className="ml-auto rounded-full bg-warning/20 px-1.5 text-[11px] font-semibold tabular-nums text-warning">{lowCount}</span>
+              )}
             </Link>
           ))}
         </nav>
@@ -36,7 +43,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="flex min-h-14 min-w-[76px] flex-col items-center justify-center gap-1 px-2 text-[10px] text-muted-foreground"
             activeProps={{ className: "!text-primary" }}
           >
-            <i.icon className="h-5 w-5" />
+            <span className="relative">
+              <i.icon className="h-5 w-5" />
+              {i.to === "/min-stock" && lowCount > 0 && <span className="absolute -right-2 -top-1 rounded-full bg-warning px-1 text-[9px] font-bold text-warning-foreground">{lowCount}</span>}
+            </span>
             <span className="whitespace-nowrap">{i.label}</span>
           </Link>
         ))}

@@ -1,6 +1,6 @@
 // Mocks — replace with fetch() calls to real backend later.
 import * as db from "./mockData";
-import type { DemandGroup, DemandRow, JournalEntry, Summary } from "./types";
+import type { DemandGroup, DemandRow, JournalEntry, Product, Summary } from "./types";
 
 const delay = <T,>(v: T, ms = 250): Promise<T> => new Promise((r) => setTimeout(() => r(structuredClone(v)), ms));
 
@@ -72,5 +72,17 @@ export const api = {
   },
   hasSpecification(sku: string) {
     return db.specifications.some((s) => s.productSku === sku);
+  },
+  async getProducts(): Promise<Product[]> {
+    return delay(db.products);
+  },
+  async updateMinStock(sku: string, value: number): Promise<Product> {
+    if (!Number.isFinite(value) || value < 0) throw new Error("Мінімальний залишок має бути ≥ 0");
+    const p = productBySku(sku);
+    if (!p) throw new Error("Товар не знайдено");
+    const old = p.minStock;
+    p.minStock = Math.round(value);
+    db.journal.push({ ts: new Date().toISOString().slice(0, 19), user: "Власник", action: "Зміна мінімального залишку", details: `${sku}: ${old} → ${p.minStock}` });
+    return delay(p);
   },
 };

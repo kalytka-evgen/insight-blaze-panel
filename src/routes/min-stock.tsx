@@ -53,7 +53,7 @@ function MinStockPage() {
 
   const submit = (sku: string) => {
     const v = Number(value.replace(",", "."));
-    if (value.trim() === "" || !Number.isFinite(v) || v < 0) return toast.error("Помилка: введіть число ≥ 0");
+    if (value.trim() === "" || !Number.isFinite(v) || v < 0) { toast.error("Помилка: введіть число ≥ 0"); return; }
     save.mutate({ sku, v });
   };
 

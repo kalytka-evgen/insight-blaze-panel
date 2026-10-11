@@ -13,7 +13,7 @@ export type TaskStatus = "new" | "welding" | "grinding" | "painting" | "assembly
 export type ProductionTask = { id: string; productSku: string; productName: string; qty: number; status: TaskStatus; assignee: string; createdAt: string; extraCosts: ExtraCost[]; materials: { sku: string; name: string; need: number; have: number }[]; unitCost?: number };
 export type ShipmentOrder = { id: string; number: string; buyer: string; total: number; delivery: string; status: "ready" | "pack"; items: { sku: string; name: string; qty: number; chars?: string }[]; documents: boolean };
 export type JournalEntry = { ts: string; user: string; action: string; details: string };
-export type StockBatch = { id: string; sku: string; name: string; date: string; qtyInitial: number; qtyRemaining: number; unitCost: number; source: string; purchaseId?: string };
+export type StockBatch = { id: string; sku: string; name: string; date: string; qtyInitial: number; qtyRemaining: number; unitCost: number; source: string; purchaseId?: string | undefined };
 export type Receipt = { id: string; number: string; date: string; contractorId: string; purchaseId?: string | undefined; items: { sku: string; name: string; qty: number; price: number }[]; total: number };
 export type ReportRow = { period: string; revenue: number; cost: number; margin: number; marginPct: number };
 

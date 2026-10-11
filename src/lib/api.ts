@@ -1,4 +1,5 @@
-// Mocks — replace with fetch() calls to real backend later.
+// Гібрид: моки (для тестів/демо) + live-режим через fetch до бекенду GERTS.
+// enableLiveApi() вмикає fetch до /legacy/wh/api (викликається з AppShell).
 import * as db from "./mockData";
 import type { Contractor, DemandGroup, DemandRow, ExtraCost, JournalEntry, Payment, Product, ProductionTask, Purchase, PurchaseStatus, Receipt, ReportRow, ShipmentOrder, Specification, StockBatch, Summary, TaskStatus } from "./types";
 import { consumeFifo, type FifoConsumption } from "./fifo";
@@ -37,7 +38,7 @@ function computeDemand(): DemandGroup[] {
   });
 }
 
-export const api = {
+const mockApi = {
   async getSummary(): Promise<Summary> {
     const demand = computeDemand();
     const leaf = demand.flatMap((g) => g.rows).filter((r) => r.deficit > 0 && !(r.isProduct && db.specifications.some((s) => s.productSku === r.sku)));
@@ -161,7 +162,7 @@ export const api = {
     if (r.purchaseId) {
       const p = db.purchases.find((x) => x.id === r.purchaseId);
       if (p) {
-        const rec = api.receivedFor(p.id);
+        const rec = mockReceivedFor(p.id);
         if (p.items.every((i) => (rec[i.sku] ?? 0) >= i.qty)) p.status = "received";
       }
     } else c.balance += r.total;
@@ -385,3 +386,187 @@ export function periodLabel(key: string) {
   if (m) return `${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
   return key.replace("Q", "кв. ");
 }
+
+// ───────────────────────── Live-режим (fetch до бекенду) ─────────────────────────
+
+const API_BASE: string = (import.meta.env["VITE_API_BASE"] as string) || "https://pricegen.feedstream.com.ua/legacy/wh/api";
+
+let live = false;
+export function enableLiveApi() {
+  if (!live) {
+    live = true;
+    void hydrate();
+  }
+}
+export function isLiveApi() { return live; }
+
+// Live увімкнено за замовчуванням (і в браузері, і в SSR),
+// моки лишаються тільки для тестів (globalThis.__GERTS_MOCKS__ = true).
+if (typeof globalThis !== "undefined" && (globalThis as { __GERTS_MOCKS__?: boolean }).__GERTS_MOCKS__ !== true) {
+  enableLiveApi();
+}
+
+// Клієнтський кеш для синхронних хелперів (hasSpecification / receivedFor / specUnitCost / estimateTask)
+const C: {
+  products: Product[]; specs: Specification[]; receipts: Receipt[]; tasks: ProductionTask[];
+  estimates: Record<string, AssemblyEstimate>;
+} = { products: [], specs: [], receipts: [], tasks: [], estimates: {} };
+
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const r = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  });
+  let j: unknown = null;
+  try { j = await r.json(); } catch { /* пусте тіло */ }
+  if (!r.ok) {
+    const msg = (j && typeof j === "object" && "error" in j) ? String((j as { error: unknown }).error) : `Помилка сервера (${r.status})`;
+    throw new Error(msg);
+  }
+  return j as T;
+}
+
+async function hydrate(): Promise<void> {
+  if (!live) return;
+  try {
+    const [products, specs, receipts, tasks, estimates] = await Promise.all([
+      req<Product[]>("/products"),
+      req<Specification[]>("/specs"),
+      req<Receipt[]>("/receipts"),
+      req<ProductionTask[]>("/tasks"),
+      req<Record<string, AssemblyEstimate>>("/tasks/estimates"),
+    ]);
+    C.products = products;
+    C.specs = specs;
+    C.receipts = receipts;
+    C.tasks = tasks;
+    C.estimates = estimates || {};
+  } catch {
+    /* сервер тимчасово недоступний — кеш залишається */
+  }
+}
+export { hydrate };
+
+const emptyEstimate = (): AssemblyEstimate =>
+  ({ lines: [], materialsCost: 0, extraCost: 0, unitCost: 0 });
+
+function mockReceivedFor(purchaseId: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of db.receipts.filter((x) => x.purchaseId === purchaseId))
+    for (const i of r.items) out[i.sku] = (out[i.sku] ?? 0) + i.qty;
+  return out;
+}
+
+// Live-реалізації (типи збігаються з mockApi)
+const liveApi = {
+  getSummary: (): Promise<Summary> => req<Summary>("/summary"),
+  getDemand: (): Promise<DemandGroup[]> => req<DemandGroup[]>("/demand"),
+  getJournal: (limit = 300): Promise<JournalEntry[]> => req<JournalEntry[]>(`/journal?limit=${limit}`),
+  createProductionTasksFromDemand: async (rows: { sku: string; qty: number }[]): Promise<number> =>
+    (await req<{ created: number }>("/demand/create-tasks", { method: "POST", body: JSON.stringify({ rows }) })).created,
+  hasSpecification: (sku: string): boolean => C.specs.some((s) => s.productSku === sku),
+  getProducts: async (): Promise<Product[]> => { C.products = await req<Product[]>("/products"); return C.products; },
+  updateMinStock: async (sku: string, value: number): Promise<Product> =>
+    req<Product>(`/min-stock/${encodeURIComponent(sku)}`, { method: "PUT", body: JSON.stringify({ value }) }),
+  getContractors: (): Promise<Contractor[]> => req<Contractor[]>("/contractors"),
+  createContractor: (name: string, phone = ""): Promise<Contractor> =>
+    req<Contractor>("/contractors", { method: "POST", body: JSON.stringify({ name, phone }) }),
+  getPayments: (contractorId?: string): Promise<Payment[]> =>
+    req<Payment[]>(`/payments${contractorId ? `?contractor=${encodeURIComponent(contractorId)}` : ""}`),
+  addPayment: (input: Omit<Payment, "id">): Promise<Payment> =>
+    req<Payment>("/payments", { method: "POST", body: JSON.stringify(input) }),
+  getPurchases: (): Promise<Purchase[]> => req<Purchase[]>("/purchases"),
+  receivedFor: (purchaseId: string): Record<string, number> => {
+    const out: Record<string, number> = {};
+    for (const r of C.receipts.filter((x) => x.purchaseId === purchaseId))
+      for (const i of r.items) out[i.sku] = (out[i.sku] ?? 0) + i.qty;
+    return out;
+  },
+  createPurchase: (input: Omit<Purchase, "id" | "total" | "status"> & { status?: PurchaseStatus }): Promise<Purchase> =>
+    req<Purchase>("/purchases", { method: "POST", body: JSON.stringify(input) }),
+  updatePurchaseStatus: async (id: string, status: PurchaseStatus): Promise<Purchase> =>
+    (await req<Purchase>(`/purchases/${id}/status`, { method: "POST", body: JSON.stringify({ status }) })) as Purchase,
+  getReceipts: async (): Promise<Receipt[]> => { C.receipts = await req<Receipt[]>("/receipts"); return C.receipts; },
+  createReceipt: async (input: Omit<Receipt, "id" | "total" | "number"> & { number?: string; comment?: string }): Promise<Receipt> => {
+    const r = await req<Receipt>("/receipts", { method: "POST", body: JSON.stringify(input) });
+    void hydrate();
+    return r;
+  },
+  getBatches: (sku?: string): Promise<StockBatch[]> =>
+    req<StockBatch[]>(`/batches${sku ? `?sku=${encodeURIComponent(sku)}` : ""}`),
+  getProductionTasks: async (): Promise<ProductionTask[]> => {
+    C.tasks = await req<ProductionTask[]>("/tasks");
+    void hydrate();
+    return C.tasks;
+  },
+  createProductionTask: async (input: { productSku: string; qty: number; assignee: string; extraCosts: ExtraCost[] }): Promise<ProductionTask> => {
+    const t = await req<ProductionTask>("/tasks", { method: "POST", body: JSON.stringify(input) });
+    void hydrate();
+    return t;
+  },
+  moveTask: async (id: string, status: TaskStatus): Promise<void> => {
+    await req(`/tasks/${id}/move`, { method: "POST", body: JSON.stringify({ status }) });
+  },
+  addExtraCost: async (id: string, cost: ExtraCost): Promise<void> => {
+    await req(`/tasks/${id}/extra-cost`, { method: "POST", body: JSON.stringify(cost) });
+    void hydrate();
+  },
+  estimateTask: (id: string): AssemblyEstimate => {
+    const est = C.estimates[id];
+    if (est) return est;
+    const t = C.tasks.find((x) => x.id === id);
+    if (!t) return emptyEstimate();
+    const spec = C.specs.find((s) => s.productSku === t.productSku);
+    const lines = (spec?.components ?? []).map((c) => {
+      const need = c.qty * t.qty;
+      const have = C.products.find((p) => p.sku === c.sku)?.stock ?? 0;
+      return { sku: c.sku, name: c.name, qty: need, consumed: [] as FifoConsumption[], cost: 0, shortage: Math.max(0, need - have) };
+    });
+    const extraCost = t.extraCosts.reduce((s, e) => s + e.amount, 0);
+    const qty = Math.max(1, t.qty);
+    return { lines, materialsCost: 0, extraCost, unitCost: Math.round((extraCost / qty) * 100) / 100 };
+  },
+  assembleTask: async (id: string): Promise<ProductionTask> => {
+    const r = await req<{ ok: boolean; unitCost: number }>(`/tasks/${id}/assemble`, { method: "POST" });
+    void hydrate();
+    return r as unknown as ProductionTask;
+  },
+  getShipping: (): Promise<ShipmentOrder[]> => req<ShipmentOrder[]>("/shipping"),
+  getPacking: (): Promise<(ShipmentOrder & { canShip: boolean })[]> => req<(ShipmentOrder & { canShip: boolean })[]>("/packing"),
+  getSpecifications: async (): Promise<Specification[]> => {
+    C.specs = await req<Specification[]>("/specs");
+    return C.specs;
+  },
+  searchProducts: (q: string): Promise<Product[]> =>
+    req<Product[]>(`/products/search?q=${encodeURIComponent(q)}`),
+  saveSpecification: async (spec: Specification, newProduct?: { category: string }): Promise<Specification> => {
+    const s = await req<Specification>("/specs", { method: "POST", body: JSON.stringify({ spec, newProduct }) });
+    void hydrate();
+    return s;
+  },
+  deleteSpecification: async (productSku: string): Promise<void> => {
+    await req(`/specs/${encodeURIComponent(productSku)}`, { method: "DELETE" });
+    void hydrate();
+  },
+  specUnitCost: (spec: Pick<Specification, "components">): number =>
+    spec.components.reduce((s, c) => s + c.qty * (C.products.find((p) => p.sku === c.sku)?.cost ?? 0), 0),
+  getReports: (kind: "orders" | "products" | "periods", period: ReportPeriod = "month"): Promise<ReportResult> =>
+    req<ReportResult>(`/reports?kind=${kind}&period=${period}`),
+};
+
+type Api = typeof mockApi;
+
+// Диспетчер: live → fetch, інакше — моки (тести/демо)
+export const api: Api = Object.fromEntries(
+  (Object.keys(mockApi) as (keyof Api)[]).map((k) => [
+    k,
+    (...args: unknown[]) => {
+      if (live) {
+        const fn = (liveApi as unknown as Record<string, (...a: unknown[]) => unknown>)[k as string];
+        if (fn) return fn(...args);
+      }
+      const mfn = (mockApi as unknown as Record<string, (...a: unknown[]) => unknown>)[k as string]!;
+      return mfn(...args);
+    },
+  ])
+) as unknown as Api;

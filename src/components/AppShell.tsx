@@ -1,10 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { navItems } from "@/lib/nav";
-import { api } from "@/lib/api";
+import { api, enableLiveApi } from "@/lib/api";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    enableLiveApi();
+  }, []);
   const products = useQuery({ queryKey: ["products"], queryFn: api.getProducts });
   const lowCount = (products.data ?? []).filter((p) => p.stock < p.minStock).length;
   return (

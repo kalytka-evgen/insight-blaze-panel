@@ -259,7 +259,7 @@ export const api = {
     const i = db.specifications.findIndex((s) => s.productSku === productSku);
     if (i < 0) throw new Error("Специфікацію не знайдено");
     const [s] = db.specifications.splice(i, 1);
-    log("Специфікація видалена", s.productName);
+    log("Специфікація видалена", s?.productName ?? productSku);
     return delay(undefined);
   },
   specUnitCost(spec: Pick<Specification, "components">): number {

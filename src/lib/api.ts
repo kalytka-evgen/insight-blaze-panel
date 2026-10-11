@@ -54,4 +54,23 @@ export const api = {
   async getJournal(limit = 300): Promise<JournalEntry[]> {
     return delay([...db.journal].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, limit));
   },
+  /** Creates one production task per selected finished-product row (qty = deficit). */
+  async createProductionTasksFromDemand(rows: { sku: string; qty: number }[]): Promise<number> {
+    const now = new Date().toISOString();
+    let created = 0;
+    for (const r of rows) {
+      const spec = db.specifications.find((s) => s.productSku === r.sku);
+      if (!spec || r.qty <= 0) continue;
+      db.productionTasks.push({
+        id: `t${Date.now()}${created}`, productSku: spec.productSku, productName: spec.productName, qty: r.qty,
+        status: "new", assignee: "", createdAt: now.slice(0, 10), extraCosts: [], materials: [],
+      });
+      db.journal.push({ ts: now.slice(0, 19), user: "Власник", action: "Нова задача", details: `${spec.productName} ×${r.qty} (з потреби)` });
+      created++;
+    }
+    return delay(created);
+  },
+  hasSpecification(sku: string) {
+    return db.specifications.some((s) => s.productSku === sku);
+  },
 };

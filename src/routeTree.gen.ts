@@ -10,33 +10,180 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContractorsRouteImport } from './routes/contractors'
+import { Route as DemandRouteImport } from './routes/demand'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as MinStockRouteImport } from './routes/min-stock'
+import { Route as PackingRouteImport } from './routes/packing'
+import { Route as ProductionRouteImport } from './routes/production'
+import { Route as PurchasesRouteImport } from './routes/purchases'
+import { Route as ReceiptsRouteImport } from './routes/receipts'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ShippingRouteImport } from './routes/shipping'
+import { Route as SpecsRouteImport } from './routes/specs'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContractorsRoute = ContractorsRouteImport.update({
+  id: '/contractors',
+  path: '/contractors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemandRoute = DemandRouteImport.update({
+  id: '/demand',
+  path: '/demand',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinStockRoute = MinStockRouteImport.update({
+  id: '/min-stock',
+  path: '/min-stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PackingRoute = PackingRouteImport.update({
+  id: '/packing',
+  path: '/packing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductionRoute = ProductionRouteImport.update({
+  id: '/production',
+  path: '/production',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PurchasesRoute = PurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceiptsRoute = ReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShippingRoute = ShippingRouteImport.update({
+  id: '/shipping',
+  path: '/shipping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpecsRoute = SpecsRouteImport.update({
+  id: '/specs',
+  path: '/specs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contractors': typeof ContractorsRoute
+  '/demand': typeof DemandRoute
+  '/journal': typeof JournalRoute
+  '/min-stock': typeof MinStockRoute
+  '/packing': typeof PackingRoute
+  '/production': typeof ProductionRoute
+  '/purchases': typeof PurchasesRoute
+  '/receipts': typeof ReceiptsRoute
+  '/reports': typeof ReportsRoute
+  '/shipping': typeof ShippingRoute
+  '/specs': typeof SpecsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contractors': typeof ContractorsRoute
+  '/demand': typeof DemandRoute
+  '/journal': typeof JournalRoute
+  '/min-stock': typeof MinStockRoute
+  '/packing': typeof PackingRoute
+  '/production': typeof ProductionRoute
+  '/purchases': typeof PurchasesRoute
+  '/receipts': typeof ReceiptsRoute
+  '/reports': typeof ReportsRoute
+  '/shipping': typeof ShippingRoute
+  '/specs': typeof SpecsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/contractors': typeof ContractorsRoute
+  '/demand': typeof DemandRoute
+  '/journal': typeof JournalRoute
+  '/min-stock': typeof MinStockRoute
+  '/packing': typeof PackingRoute
+  '/production': typeof ProductionRoute
+  '/purchases': typeof PurchasesRoute
+  '/receipts': typeof ReceiptsRoute
+  '/reports': typeof ReportsRoute
+  '/shipping': typeof ShippingRoute
+  '/specs': typeof SpecsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/contractors'
+    | '/demand'
+    | '/journal'
+    | '/min-stock'
+    | '/packing'
+    | '/production'
+    | '/purchases'
+    | '/receipts'
+    | '/reports'
+    | '/shipping'
+    | '/specs'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/contractors'
+    | '/demand'
+    | '/journal'
+    | '/min-stock'
+    | '/packing'
+    | '/production'
+    | '/purchases'
+    | '/receipts'
+    | '/reports'
+    | '/shipping'
+    | '/specs'
+  id:
+    | '__root__'
+    | '/'
+    | '/contractors'
+    | '/demand'
+    | '/journal'
+    | '/min-stock'
+    | '/packing'
+    | '/production'
+    | '/purchases'
+    | '/receipts'
+    | '/reports'
+    | '/shipping'
+    | '/specs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ContractorsRoute: typeof ContractorsRoute
+  DemandRoute: typeof DemandRoute
+  JournalRoute: typeof JournalRoute
+  MinStockRoute: typeof MinStockRoute
+  PackingRoute: typeof PackingRoute
+  ProductionRoute: typeof ProductionRoute
+  PurchasesRoute: typeof PurchasesRoute
+  ReceiptsRoute: typeof ReceiptsRoute
+  ReportsRoute: typeof ReportsRoute
+  ShippingRoute: typeof ShippingRoute
+  SpecsRoute: typeof SpecsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +195,99 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contractors': {
+      id: '/contractors'
+      path: '/contractors'
+      fullPath: '/contractors'
+      preLoaderRoute: typeof ContractorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demand': {
+      id: '/demand'
+      path: '/demand'
+      fullPath: '/demand'
+      preLoaderRoute: typeof DemandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/min-stock': {
+      id: '/min-stock'
+      path: '/min-stock'
+      fullPath: '/min-stock'
+      preLoaderRoute: typeof MinStockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/packing': {
+      id: '/packing'
+      path: '/packing'
+      fullPath: '/packing'
+      preLoaderRoute: typeof PackingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/production': {
+      id: '/production'
+      path: '/production'
+      fullPath: '/production'
+      preLoaderRoute: typeof ProductionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/purchases': {
+      id: '/purchases'
+      path: '/purchases'
+      fullPath: '/purchases'
+      preLoaderRoute: typeof PurchasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/receipts': {
+      id: '/receipts'
+      path: '/receipts'
+      fullPath: '/receipts'
+      preLoaderRoute: typeof ReceiptsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shipping': {
+      id: '/shipping'
+      path: '/shipping'
+      fullPath: '/shipping'
+      preLoaderRoute: typeof ShippingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/specs': {
+      id: '/specs'
+      path: '/specs'
+      fullPath: '/specs'
+      preLoaderRoute: typeof SpecsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ContractorsRoute: ContractorsRoute,
+  DemandRoute: DemandRoute,
+  JournalRoute: JournalRoute,
+  MinStockRoute: MinStockRoute,
+  PackingRoute: PackingRoute,
+  ProductionRoute: ProductionRoute,
+  PurchasesRoute: PurchasesRoute,
+  ReceiptsRoute: ReceiptsRoute,
+  ReportsRoute: ReportsRoute,
+  ShippingRoute: ShippingRoute,
+  SpecsRoute: SpecsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

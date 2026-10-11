@@ -29,7 +29,7 @@ export const specifications: Specification[] = [
     { sku: "hard10-n31", name: "Лист сталі Hardox 10 мм, 200х300", qty: 1 },
     { sku: "kr-0810", name: "Кронштейн підвісний 8х100", qty: 2 },
     { sku: "bolt-m10", name: "Болт М10х40 з гайкою", qty: 4 },
-    { sku: "farba-rd", name: "Фарба порошкова червона, 1 кг", qty: 0.2 as unknown as number },
+    { sku: "farba-rd", name: "Фарба порошкова червона, 1 кг", qty: 0.2 },
   ] },
   { productSku: "gerts.021", productName: "Мішень гонг «Коло 250»", components: [
     { sku: "hard10-n32", name: "Лист сталі Hardox 10 мм, коло 250", qty: 1 },

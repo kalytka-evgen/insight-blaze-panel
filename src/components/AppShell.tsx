@@ -1,13 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { navItems } from "@/lib/nav";
-import { api, enableLiveApi } from "@/lib/api";
+import { api, enableLiveApi, hydrate } from "@/lib/api";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const qc = useQueryClient();
   useEffect(() => {
     enableLiveApi();
-  }, []);
+    // Після гідрації кешу (specs/products/receipts/estimates) перерендерюємо
+    // всі запити — синхронні хелпери (hasSpecification, receivedFor тощо)
+    // читають кеш, і без цього сторінки не побачать його заповнення.
+    hydrate().then(() => qc.invalidateQueries());
+  }, [qc]);
   const products = useQuery({ queryKey: ["products"], queryFn: api.getProducts });
   const lowCount = (products.data ?? []).filter((p) => p.stock < p.minStock).length;
   return (

@@ -47,11 +47,16 @@ const Deficit = ({ v }: { v: number }) => <span className={v > 0 ? "font-semibol
 function DemandPage() {
   const qc = useQueryClient();
   const demand = useQuery({ queryKey: ["demand"], queryFn: api.getDemand });
+  const specs = useQuery({ queryKey: ["specs"], queryFn: api.getSpecifications });
   const [q, setQ] = useState("");
   const [onlyDeficit, setOnlyDeficit] = useState(false);
   const [tab, setTab] = useState("cat");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState(false);
+
+  // SKU зі специфікацією — через query, щоб чекбокси з'явились одразу,
+  // коли специфікації завантажились (модульний кеш api може ще бути порожнім)
+  const specSet = useMemo(() => new Set((specs.data ?? []).map((s) => s.productSku)), [specs.data]);
 
   const match = (r: DemandRow) => (!q || `${r.sku} ${r.name}`.toLowerCase().includes(q.toLowerCase())) && (!onlyDeficit || r.deficit > 0);
 
@@ -144,7 +149,7 @@ function DemandPage() {
                           </tr></thead>
                           <tbody>
                             {g.rows.map((r) => {
-                              const canProduce = r.isProduct && r.deficit > 0 && api.hasSpecification(r.sku);
+                              const canProduce = r.isProduct && r.deficit > 0 && specSet.has(r.sku);
                               return (
                                 <tr key={r.sku + (r.parentSku ?? "")} className={`border-b last:border-0 hover:bg-accent ${r.isProduct ? "" : "text-muted-foreground"}`}>
                                   <td className="px-3 py-1.5">

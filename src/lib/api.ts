@@ -389,7 +389,10 @@ export function periodLabel(key: string) {
 
 // ───────────────────────── Live-режим (fetch до бекенду) ─────────────────────────
 
-const API_BASE: string = (import.meta.env["VITE_API_BASE"] as string) || "https://pricegen.feedstream.com.ua/legacy/wh/api";
+const API_BASE: string = (import.meta.env["VITE_API_BASE"] as string) ||
+  (typeof window === "undefined"
+    ? "http://127.0.0.1:8080/legacy/wh/api" // SSR (node): внутрішній виклик
+    : "/legacy/wh/api"); // браузер: той самий домен
 
 let live = false;
 export function enableLiveApi() {

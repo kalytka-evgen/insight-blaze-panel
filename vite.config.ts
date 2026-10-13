@@ -7,7 +7,12 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  vite: {
+    base: "/legacy/admin/",
+  },
   tanstackStart: {
+    // Внутрішня адмінка — SPA без SSR (SSR-гідрація React Query зависала в loading)
+    ssr: false,
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },

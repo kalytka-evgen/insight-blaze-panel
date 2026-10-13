@@ -12,6 +12,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     // всі запити — синхронні хелпери (hasSpecification, receivedFor тощо)
     // читають кеш, і без цього сторінки не побачать його заповнення.
     hydrate().then(() => qc.invalidateQueries());
+    // SPA-режим: HeadContent не заповнює <head>, тому шрифти підключаємо вручну
+    if (!document.getElementById("gerts-fonts")) {
+      const pre = document.createElement("link");
+      pre.rel = "preconnect";
+      pre.href = "https://fonts.googleapis.com";
+      const css = document.createElement("link");
+      css.rel = "stylesheet";
+      css.id = "gerts-fonts";
+      css.href = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap";
+      document.head.append(pre, css);
+    }
   }, [qc]);
   const products = useQuery({ queryKey: ["products"], queryFn: api.getProducts });
   const lowCount = (products.data ?? []).filter((p) => p.stock < p.minStock).length;

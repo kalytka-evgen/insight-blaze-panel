@@ -35,7 +35,7 @@ function Sources({ r }: { r: DemandRow }) {
   return (
     <span className="flex flex-wrap gap-1">
       {r.sources.map((s) => (
-        <a key={s.orderId} href="#" title={`Замовлення ${s.orderId}`} className="text-primary hover:underline">#{s.orderId}</a>
+        <a key={s.orderId} href={`https://gerts.keycrm.app/app/orders/view/${s.orderId}`} target="_blank" rel="noreferrer" title={`Замовлення ${s.orderId}`} className="text-primary hover:underline">#{s.orderId}</a>
       ))}
     </span>
   );

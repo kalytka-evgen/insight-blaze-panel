@@ -27,10 +27,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [qc]);
 
-  // виконавець завжди потрапляє на «Моя робота»
+  // виконавець завжди на «Моя робота»; комплектація — в окремій станції packer.py
   useEffect(() => {
     if (role === "worker" && router.state.location.pathname !== "/work") {
       router.navigate({ to: "/work" });
+    }
+    if (role === "packer" && !window.location.pathname.startsWith("/legacy/packer")) {
+      window.location.href = "https://pricegen.feedstream.com.ua/legacy/packer/";
     }
   }, [role, router]);
 
@@ -41,9 +44,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <RoleGate onDone={(r) => setRoleState(r)} />;
   }
   if (role === "packer") {
+    // комплектація живе в окремій станції packer.py — редірект у ефекті вище
     return (
-      <div className="flex min-h-screen items-center justify-center bg-sidebar p-4 text-center text-sm text-muted-foreground">
-        Перенаправляємо на комплектацію…
+      <div className="flex min-h-screen items-center justify-center bg-sidebar p-4">
+        <div className="space-y-3 text-center text-sm text-muted-foreground">
+          <p>Перенаправляємо на комплектацію…</p>
+          <button type="button" className="underline" onClick={() => { localStorage.removeItem("gerts-role"); window.location.reload(); }}>
+            Змінити роль
+          </button>
+        </div>
       </div>
     );
   }

@@ -9,7 +9,6 @@ import { Confirm, ExportButton, Field, matches, NativeSelect, Pill, SearchBox, T
 import { parseNum } from "@/components/ItemsEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api, TASK_ORDER, TASK_STATUS } from "@/lib/api";
 import { exportCsv, fmtDate, fmtMoney, fmtNum } from "@/lib/format";
@@ -32,7 +31,16 @@ const enough = (t: ProductionTask) => t.materials.every((m) => m.have >= m.need)
 function ProductionPage() {
   const qc = useQueryClient();
   const tasks = useQuery({ queryKey: ["tasks"], queryFn: api.getProductionTasks });
+  const inProd = useQuery({ queryKey: ["in-production"], queryFn: api.getInProduction });
   const [q, setQ] = useState("");
+  const genTasks = useMutation({
+    mutationFn: (orderId: string) => api.createTasksFromOrder(orderId),
+    onSuccess: (r) => {
+      toast.success(`Створено ${r.created} задач: ${r.tasks.map((t) => `${t.sku} ×${t.qty}`).join(", ")}`);
+      void qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
+  });
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null);
@@ -81,6 +89,10 @@ function ProductionPage() {
                           <div className="mt-1 font-mono text-xs text-muted-foreground">{t.productSku}</div>
                           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
                             <Pill tone="primary">×{fmtNum(t.qty)}</Pill>
+                            {(t.route ?? []).map((w) => (
+                              <span key={w} className={`rounded-full px-2 py-0.5 ${(t.routeDone ?? []).includes(w) ? "bg-success-foreground/15 text-success-foreground" : "bg-muted text-muted-foreground"}`}>{w}</span>
+                            ))}
+                            {t.due && <Pill tone="warning">до {t.due.slice(5)}</Pill>}
                             {t.assignee && <Pill>{t.assignee}</Pill>}
                             {extra > 0 && <Pill>+{fmtMoney(extra)}</Pill>}
                             {t.status !== "done" && !ok && <Pill tone="warning">не вистачає</Pill>}
@@ -98,13 +110,59 @@ function ProductionPage() {
       </div>
       {creating && <TaskForm onClose={() => setCreating(false)} />}
       <Sheet open={!!current} onOpenChange={(o) => !o && setOpenId(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">{current && <TaskDetail t={current} onMove={(s) => move.mutate({ id: current.id, status: s })} />}</SheetContent>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">{current && <TaskDetail t={current} onMove={(s) => move.mutate({ id: current.id, status: s })} onClose={() => setOpenId(null)} />}</SheetContent>
       </Sheet>
+
+      <div className="mt-6 px-4 pb-6 md:px-6">
+        <h2 className="mb-2 text-sm font-medium text-primary">
+          🏭 Закази у виробництві <span className="tabular-nums">({(inProd.data ?? []).length})</span>
+        </h2>
+        <div className="rounded-lg border bg-card">
+          {inProd.isLoading ? <LoadingRows rows={3} /> : inProd.isError ? <ErrorState /> : !(inProd.data ?? []).length ? (
+            <EmptyState text="Немає замовлень, переданих у виробництво" />
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="th-ops w-24 px-3 py-2 text-left">Замовлення</th>
+                  <th className="th-ops w-56 px-3 py-2 text-left">Клієнт</th>
+                  <th className="th-ops w-24 px-3 py-2 text-left">Дата</th>
+                  <th className="th-ops px-3 py-2 text-left">Позиції</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(inProd.data ?? []).map((o) => (
+                  <tr key={o.id} className="border-b last:border-0">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <a href={`https://gerts.keycrm.app/app/orders/view/${o.id}`} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">#{o.id}</a>
+                        <button type="button" disabled={genTasks.isPending}
+                          onClick={() => genTasks.mutate(o.id)}
+                          title="Створити задачі виробництва за цим заказом"
+                          className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-50">
+                          ⚡ Створити задачі
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">{o.buyer}</td>
+                    <td className="px-3 py-2 tabular-nums text-muted-foreground">{o.date ? o.date.slice(5).replace("-", ".") : "—"}</td>
+                    <td className="px-3 py-2">
+                      {o.items.map((i) => (
+                        <span key={i.sku} title={i.sku} className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{i.name} ×{i.qty}</span>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </>
   );
 }
 
-function TaskDetail({ t, onMove }: { t: ProductionTask; onMove: (s: TaskStatus) => void }) {
+function TaskDetail({ t, onMove, onClose }: { t: ProductionTask; onMove: (s: TaskStatus) => void; onClose: () => void }) {
   const qc = useQueryClient();
   const est = api.estimateTask(t.id);
   const short = est.lines.some((l) => l.shortage > 0);
@@ -118,6 +176,11 @@ function TaskDetail({ t, onMove }: { t: ProductionTask; onMove: (s: TaskStatus) 
   const assemble = useMutation({
     mutationFn: () => api.assembleTask(t.id),
     onSuccess: (r) => { toast.success(`Збережено: зібрано ${r.productName} ×${r.qty}`); qc.invalidateQueries(); },
+    onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
+  });
+  const delTask = useMutation({
+    mutationFn: () => api.deleteTask(t.id),
+    onSuccess: () => { toast.success("Задачу видалено"); qc.invalidateQueries(); onClose(); },
     onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
   });
   const done = t.status === "done";
@@ -180,6 +243,10 @@ function TaskDetail({ t, onMove }: { t: ProductionTask; onMove: (s: TaskStatus) 
         {!done && (
           <Button className="h-11 w-full" disabled={short || assemble.isPending} onClick={() => setConfirm(true)}><Hammer />Виконати збірку</Button>
         )}
+        <Button variant="outline" className="h-10 w-full text-muted-foreground" disabled={delTask.isPending}
+          onClick={() => delTask.mutate()}>
+          <Trash2 className="mr-2 h-4 w-4" /> Видалити задачу
+        </Button>
       </div>
 
       <Confirm open={confirm} onOpenChange={setConfirm} confirmLabel="Виконати збірку" onConfirm={() => assemble.mutate()}
@@ -207,44 +274,65 @@ function TaskForm({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const specs = useQuery({ queryKey: ["specs"], queryFn: api.getSpecifications });
   const [f, setF] = useState({ productSku: "", qty: "1", assignee: "" });
-  const [costs, setCosts] = useState<{ name: string; amount: string }[]>([]);
+  const [q, setQ] = useState("");
+  const list = (specs.data ?? []).filter((s) => matches(q, s.productSku, s.productName));
+  const selected = specs.data?.find((s) => s.productSku === f.productSku);
   const save = useMutation({
-    mutationFn: () => api.createProductionTask({ productSku: f.productSku, qty: parseNum(f.qty), assignee: f.assignee.trim(), extraCosts: costs.map((c) => ({ name: c.name, amount: parseNum(c.amount) })) }),
-    onSuccess: () => { toast.success("Збережено"); qc.invalidateQueries(); onClose(); },
+    mutationFn: () => api.createProductionTask({ productSku: f.productSku, qty: parseNum(f.qty), assignee: f.assignee.trim(), extraCosts: [] }),
+    onSuccess: () => { toast.success("Задачу створено"); qc.invalidateQueries(); onClose(); },
     onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
   });
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Нова задача</DialogTitle></DialogHeader>
-        {specs.isLoading ? <LoadingRows rows={2} /> : !specs.data?.length ? <EmptyState text="Немає виробів зі специфікацією" /> : (
-          <div className="space-y-3">
-            <Field label="Виріб">
-              <NativeSelect value={f.productSku} onChange={(e) => setF({ ...f, productSku: e.target.value })}>
-                <option value="">— оберіть —</option>
-                {specs.data.map((s) => <option key={s.productSku} value={s.productSku}>{s.productSku} — {s.productName}</option>)}
-              </NativeSelect>
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Кількість"><Input inputMode="numeric" className="h-10" value={f.qty} onChange={(e) => setF({ ...f, qty: e.target.value })} /></Field>
-              <Field label="Відповідальний"><Input className="h-10" value={f.assignee} onChange={(e) => setF({ ...f, assignee: e.target.value })} /></Field>
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="flex w-full flex-col sm:max-w-2xl">
+        <SheetHeader><SheetTitle>Нова задача виробництва</SheetTitle></SheetHeader>
+        <div className="mt-3 flex-1 space-y-3 overflow-y-auto pb-4">
+          <SearchBox value={q} onChange={setQ} placeholder="Пошук виробу за назвою або артикулом" />
+          {specs.isLoading ? <LoadingRows rows={5} /> : !list.length ? <EmptyState text="Немає виробів зі специфікацією" /> : (
+            <div className="space-y-1.5">
+              {list.map((s) => {
+                const active = s.productSku === f.productSku;
+                return (
+                  <button key={s.productSku} type="button"
+                    onClick={() => setF((x) => ({ ...x, productSku: s.productSku }))}
+                    className={`w-full rounded-lg border px-3 py-3 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-accent"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[15px] font-semibold leading-snug">{s.productName}</span>
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">{s.productSku}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {(s.route ?? []).map((w) => (
+                        <span key={w} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{w}</span>
+                      ))}
+                      {s.assemble && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">🧩 Збірка</span>}
+                      {!(s.route ?? []).length && !s.assemble && <span className="text-xs text-muted-foreground">без робіт</span>}
+                    </div>
+                    <div className="mt-1.5 text-xs text-muted-foreground">
+                      {s.components.length} комплектуючих: {s.components.slice(0, 4).map((c) => c.name.split(" (")[0]).join(", ")}{s.components.length > 4 ? "…" : ""}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            <div className="text-xs text-muted-foreground">Додаткові витрати</div>
-            {costs.map((c, i) => (
-              <div key={i} className="flex gap-2">
-                <Input className="h-10" placeholder="Назва" value={c.name} onChange={(e) => setCosts(costs.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))} />
-                <Input className="h-10 w-28 text-right" inputMode="decimal" placeholder="Сума" value={c.amount} onChange={(e) => setCosts(costs.map((x, k) => (k === i ? { ...x, amount: e.target.value } : x)))} />
-                <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Видалити" onClick={() => setCosts(costs.filter((_, k) => k !== i))}><Trash2 /></Button>
-              </div>
-            ))}
-            <Button variant="outline" className="h-10" onClick={() => setCosts([...costs, { name: "", amount: "" }])}><Plus />Додати витрату</Button>
+          )}
+        </div>
+        <div className="space-y-3 border-t pt-3">
+          {selected && (
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
+              <span className="font-medium">{selected.productName}</span>
+              <span className="ml-2 font-mono text-xs text-muted-foreground">{selected.productSku}</span>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Кількість"><Input inputMode="numeric" className="h-10" value={f.qty} onChange={(e) => setF({ ...f, qty: e.target.value })} /></Field>
+            <Field label="Відповідальний"><Input className="h-10" value={f.assignee} onChange={(e) => setF({ ...f, assignee: e.target.value })} /></Field>
           </div>
-        )}
-        <DialogFooter>
-          <Button variant="outline" className="h-10" onClick={onClose}>Скасувати</Button>
-          <Button className="h-10" disabled={save.isPending} onClick={() => save.mutate()}>Зберегти</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <div className="flex gap-2">
+            <Button variant="outline" className="h-11 flex-1" onClick={onClose}>Скасувати</Button>
+            <Button className="h-11 flex-1" disabled={!f.productSku || save.isPending} onClick={() => save.mutate()}>Створити задачу</Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

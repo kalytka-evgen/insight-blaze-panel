@@ -30,12 +30,28 @@ export function OrderTable<T extends ShipmentOrder>({ rows, extraHeader, extraCe
               <tr className="border-b bg-background/40">
                 <td />
                 <td colSpan={extraHeader ? 6 : 5} className="px-3 pb-3 pt-1">
-                  <table className="w-full text-sm">
-                    <thead><tr><th className="th-ops py-1 text-left">Товар</th><th className="th-ops py-1 text-left">Характеристики</th><th className="th-ops num py-1">Кількість</th></tr></thead>
+                  <table className="w-full table-fixed text-sm">
+                    <thead><tr><th className="th-ops py-1 text-left">Товар</th><th className="th-ops w-64 py-1 text-left">Характеристики</th><th className="th-ops w-24 num py-1">Кількість</th></tr></thead>
                     <tbody>
                       {o.items.map((i) => (
                         <tr key={i.sku} className="border-t">
-                          <td className="py-1.5"><span className="mr-2 font-mono text-xs text-muted-foreground">{i.sku}</span>{i.name}</td>
+                          <td className="py-1.5" title={i.sku}>
+                            <span className="flex items-center gap-1.5">
+                              {i.assemble && (
+                                <span title="Зібрати з компонентів" className="rounded bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary">🧩 Збірка</span>
+                              )}
+                              {i.name}
+                            </span>
+                            {i.components && i.components.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {i.components.map((c) => (
+                                  <span key={c.sku} title={c.sku} className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                                    {c.name.split(" (")[0]} ×{fmtNum(c.qty)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </td>
                           <td className="py-1.5 text-muted-foreground">{i.chars ?? "—"}</td>
                           <td className="num py-1.5 text-base font-semibold">{fmtNum(i.qty)}</td>
                         </tr>

@@ -10,6 +10,10 @@ export default defineConfig({
   vite: {
     base: "/legacy/admin/",
   },
+  // Self-host: Node-сервер, не Cloudflare. Без цього деплой мовчки не слухає порт.
+  nitro: {
+    preset: "node-server",
+  },
   tanstackStart: {
     // Внутрішня адмінка — SPA без SSR (SSR-гідрація React Query зависала в loading)
     ssr: false,

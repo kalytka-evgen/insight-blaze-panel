@@ -28,7 +28,13 @@ function ReportsPage() {
   const [kind, setKind] = useState<Kind>("orders");
   const [period, setPeriod] = useState<ReportPeriod>("month");
   const r = useQuery({ queryKey: ["reports", kind, period], queryFn: () => api.getReports(kind, period) });
+  const prods = useQuery({ queryKey: ["products"], queryFn: api.getProducts });
   const data = r.data?.kind === kind ? r.data : undefined;
+
+  const abcCounts = { A: 0, B: 0, C: 0 };
+  for (const p of prods.data ?? []) {
+    if (p.abc) abcCounts[p.abc]++;
+  }
 
   const totals = data ? data.rows.reduce((s, x) => ({ revenue: s.revenue + x.revenue, cost: s.cost + x.cost }), { revenue: 0, cost: 0 }) : { revenue: 0, cost: 0 };
   const tMargin = totals.revenue - totals.cost;
@@ -66,6 +72,16 @@ function ReportsPage() {
             </NativeSelect>
           )}
         </Toolbar>
+
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="text-sm font-medium">ABC-аналіз продажів</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">A — ключові позиції (80% виручки), B — середні (15%), C — рідкісні (5%). A-товари контролюємо найуважніше.</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm">
+            <span className="rounded-lg bg-success-foreground/15 px-3 py-1.5 font-semibold text-success-foreground">A · {abcCounts.A} товарів</span>
+            <span className="rounded-lg bg-primary/10 px-3 py-1.5 font-semibold text-primary">B · {abcCounts.B} товарів</span>
+            <span className="rounded-lg bg-muted px-3 py-1.5 font-semibold text-muted-foreground">C · {abcCounts.C} товарів</span>
+          </div>
+        </section>
 
         {r.isLoading || !data ? (r.isError ? <ErrorState /> : <LoadingRows rows={6} />) : !data.rows.length ? <EmptyState /> : (
           <>

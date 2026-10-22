@@ -27,21 +27,25 @@ export const Route = createFileRoute("/demand")({
   component: DemandPage,
 });
 
-const CSV_HEADERS = ["Артикул", "Найменування", "Потрібно", "На складі", "Замовлено", "До замовлення", "Джерело", "Тендер"];
-const toCsv = (r: DemandRow) => [r.sku, r.name, r.need, r.stock, r.ordered, r.deficit, r.sources.map((s) => s.orderId).join(", "), r.tender ? "так" : ""];
+const CSV_HEADERS = ["Артикул", "Найменування", "Потрібно", "На складі", "Замовлено", "До замовлення", "Джерело", "Тендерні замовлення"];
+const toCsv = (r: DemandRow) => [r.sku, r.name, r.need, r.stock, r.ordered, r.deficit, r.sources.map((s) => s.orderId).join(", "), r.sources.filter((s) => s.tender).map((s) => s.orderId).join(", ")];
 
 function Sources({ r }: { r: DemandRow }) {
   if (!r.sources.length) return <span className="text-muted-foreground">мін. залишок</span>;
   return (
-    <span className="flex flex-wrap gap-1">
+    <span className="flex flex-wrap items-center gap-1">
       {r.sources.map((s) => (
-        <a key={s.orderId} href={`https://gerts.keycrm.app/app/orders/view/${s.orderId}`} target="_blank" rel="noreferrer" title={`Замовлення ${s.orderId}`} className="text-primary hover:underline">#{s.orderId}</a>
+        <span key={s.orderId} className="flex items-center gap-1">
+          <a href={`https://gerts.keycrm.app/app/orders/view/${s.orderId}`} target="_blank" rel="noreferrer" title={`Замовлення ${s.orderId}`} className="text-primary hover:underline">#{s.orderId}</a>
+          {s.tender && (
+            <span title="Тендерне замовлення" className="grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-bold leading-none text-white">G</span>
+          )}
+        </span>
       ))}
     </span>
   );
 }
 
-const TenderBadge = () => <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[11px] text-primary">Тендер</span>;
 const Deficit = ({ v }: { v: number }) => <span className={v > 0 ? "font-semibold text-warning" : "text-muted-foreground"}>{fmtNum(Math.max(v, 0))}</span>;
 
 function DemandPage() {
@@ -141,11 +145,11 @@ function DemandPage() {
                         <span className="text-xs text-muted-foreground">Дефіцит: <span className="font-semibold tabular-nums text-warning">{fmtNum(total)}</span></span>
                       </div>
                       <div className="max-h-[70vh] overflow-auto">
-                        <table className="w-full min-w-[820px] text-sm">
+                        <table className="w-full min-w-[860px] table-fixed text-sm">
                           <thead><tr className="border-b">
-                            <th className={`${th} w-10`} /><th className={`${th} text-left`}>Артикул</th><th className={`${th} text-left`}>Найменування</th>
-                            <th className={`${th} num`}>Потрібно</th><th className={`${th} num`}>На складі</th><th className={`${th} num`}>Замовлено</th>
-                            <th className={`${th} num`}>До замовлення</th><th className={`${th} text-left`}>Джерело</th><th className={`${th} text-left`}>Тендер</th>
+                            <th className={`${th} w-10`} /><th className={`${th} w-36 text-left`}>Артикул</th><th className={`${th} text-left`}>Найменування</th>
+                            <th className={`${th} w-24 num`}>Потрібно</th><th className={`${th} w-24 num`}>На складі</th><th className={`${th} w-24 num`}>Замовлено</th>
+                            <th className={`${th} w-28 num`}>До замовлення</th><th className={`${th} w-40 text-left`}>Джерело</th>
                           </tr></thead>
                           <tbody>
                             {g.rows.map((r) => {
@@ -164,7 +168,6 @@ function DemandPage() {
                                   <td className="num px-3 py-1.5">{fmtNum(r.ordered)}</td>
                                   <td className="num px-3 py-1.5"><Deficit v={r.deficit} /></td>
                                   <td className="px-3 py-1.5">{r.isProduct && <Sources r={r} />}</td>
-                                  <td className="px-3 py-1.5">{r.isProduct && r.tender && <TenderBadge />}</td>
                                 </tr>
                               );
                             })}
@@ -179,11 +182,11 @@ function DemandPage() {
               <TabsContent value="comp">
                 <div className="max-h-[75vh] overflow-auto rounded-lg border bg-card">
                   {!components.length ? <EmptyState /> : (
-                    <table className="w-full min-w-[820px] text-sm">
+                    <table className="w-full min-w-[860px] table-fixed text-sm">
                       <thead><tr className="border-b">
-                        <th className={`${th} text-left`}>Артикул</th><th className={`${th} text-left`}>Назва</th><th className={`${th} num`}>Потрібно</th>
-                        <th className={`${th} num`}>На складі</th><th className={`${th} num`}>Замовлено</th><th className={`${th} num`}>До замовлення</th>
-                        <th className={`${th} text-left`}>Джерело</th><th className={`${th} text-left`}>Тендер</th>
+                        <th className={`${th} w-36 text-left`}>Артикул</th><th className={`${th} text-left`}>Назва</th><th className={`${th} w-24 num`}>Потрібно</th>
+                        <th className={`${th} w-24 num`}>На складі</th><th className={`${th} w-24 num`}>Замовлено</th><th className={`${th} w-28 num`}>До замовлення</th>
+                        <th className={`${th} w-40 text-left`}>Джерело</th>
                       </tr></thead>
                       <tbody>
                         {components.map((r) => (
@@ -195,7 +198,6 @@ function DemandPage() {
                             <td className="num px-3 py-1.5">{fmtNum(r.ordered)}</td>
                             <td className={`num px-3 py-1.5 ${r.deficit > 0 ? "bg-warning/10" : ""}`}><Deficit v={r.deficit} /></td>
                             <td className="px-3 py-1.5"><Sources r={r} /></td>
-                            <td className="px-3 py-1.5">{r.tender && <TenderBadge />}</td>
                           </tr>
                         ))}
                       </tbody>

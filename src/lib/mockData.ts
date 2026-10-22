@@ -99,10 +99,10 @@ export const productionTasks: ProductionTask[] = [
 ];
 
 export const shipments: ShipmentOrder[] = [
-  { id: "4570", number: "4570", buyer: "Стрілецький клуб «Яструб»", total: 12600, delivery: "Нова пошта, Київ №12", status: "ready", documents: true, items: [{ sku: "gerts.021", name: "Мішень гонг «Коло 250»", qty: 2, chars: "Червоний, ланцюг" }, { sku: "05002", name: "Мішень картонна «Мініпоппер»", qty: 100 }] },
-  { id: "4574", number: "4574", buyer: "ФОП Шевчук М. І.", total: 3480, delivery: "Укрпошта, Львів", status: "ready", documents: false, items: [{ sku: "06011", name: "Мішень паперова «Грудна» №6", qty: 12 }] },
-  { id: "4577", number: "4577", buyer: "ТОВ «Тактик-Про»", total: 8900, delivery: "Самовивіз", status: "pack", documents: true, items: [{ sku: "gerts.021", name: "Мішень гонг «Коло 250»", qty: 3, chars: "Білий" }, { sku: "lanc-6", name: "Ланцюг оцинкований 6 мм, 1 м", qty: 6 }] },
-  { id: "4579", number: "4579", buyer: "Андрій Мельник", total: 2150, delivery: "Нова пошта, Дніпро №4", status: "pack", documents: false, items: [{ sku: "05002", name: "Мішень картонна «Мініпоппер»", qty: 80 }, { sku: "07100", name: "Пластирі для мішеней (1000 шт)", qty: 2 }] },
+  { id: "4570", number: "4570", buyer: "Стрілецький клуб «Яструб»", total: 12600, delivery: "Нова пошта, Київ №12", status: "ready", documents: true, canShip: true, items: [{ sku: "gerts.021", name: "Мішень гонг «Коло 250»", qty: 2, chars: "Червоний, ланцюг" }, { sku: "05002", name: "Мішень картонна «Мініпоппер»", qty: 100 }] },
+  { id: "4574", number: "4574", buyer: "ФОП Шевчук М. І.", total: 3480, delivery: "Укрпошта, Львів", status: "ready", documents: false, canShip: true, items: [{ sku: "06011", name: "Мішень паперова «Грудна» №6", qty: 12 }] },
+  { id: "4577", number: "4577", buyer: "ТОВ «Тактик-Про»", total: 8900, delivery: "Самовивіз", status: "pack", documents: true, canShip: false, items: [{ sku: "gerts.021", name: "Мішень гонг «Коло 250»", qty: 3, chars: "Білий" }, { sku: "lanc-6", name: "Ланцюг оцинкований 6 мм, 1 м", qty: 6 }] },
+  { id: "4579", number: "4579", buyer: "Андрій Мельник", total: 2150, delivery: "Нова пошта, Дніпро №4", status: "pack", documents: false, canShip: false, items: [{ sku: "05002", name: "Мішень картонна «Мініпоппер»", qty: 80 }, { sku: "07100", name: "Пластирі для мішеней (1000 шт)", qty: 2 }] },
 ];
 
 export const journal: JournalEntry[] = [

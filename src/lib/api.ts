@@ -1,7 +1,7 @@
 // Гібрид: моки (для тестів/демо) + live-режим через fetch до бекенду GERTS.
 // enableLiveApi() вмикає fetch до /legacy/wh/api (викликається з AppShell).
 import * as db from "./mockData";
-import type { Contractor, DemandGroup, DemandRow, ExtraCost, JournalEntry, Payment, Product, ProductionTask, Purchase, PurchaseStatus, Receipt, ReportRow, ShipmentOrder, Specification, StockBatch, Summary, TaskStatus } from "./types";
+import type { Contractor, DemandGroup, DemandRow, ExtraCost, JournalEntry, Payment, Product, ProductionTask, Purchase, PurchaseStatus, Receipt, ReportRow, ShipmentOrder, Specification, StockBatch, Summary, TaskStatus, Today } from "./types";
 import { consumeFifo, type FifoConsumption } from "./fifo";
 import { fmtMoney } from "./format";
 
@@ -50,6 +50,24 @@ const mockApi = {
       readyToShip: db.shipments.filter((s) => s.status === "ready").length,
       toPack: db.shipments.filter((s) => s.status === "pack").length,
     });
+  },
+  async getToday(): Promise<Today> {
+    return delay({
+      today: new Date().toISOString().slice(0, 10),
+      ready: db.shipments.filter((s) => s.status === "ready").map((s) => ({ id: s.number, buyer: s.buyer, date: "" })),
+      pack: db.shipments.filter((s) => s.status === "pack").map((s) => ({ id: s.number, buyer: s.buyer, date: "" })),
+      tasks: db.productionTasks.filter((t) => t.status !== "done").map((t) => ({ name: t.productName, sku: t.productSku, qty: t.qty, status: t.status, due: null })),
+      deficit: [],
+    });
+  },
+  async mrpStatus(): Promise<{ status: { started_at?: string; finished_at?: string; result?: string }; snapshots: Record<string, number | null> }> {
+    return delay({ status: { started_at: new Date().toLocaleString("uk-UA"), finished_at: new Date().toLocaleString("uk-UA"), result: "ok" }, snapshots: {} });
+  },
+  async mrpRun(force: boolean): Promise<{ ok: boolean; mode: string }> {
+    return delay({ ok: true, mode: force ? "force" : "delta" });
+  },
+  async getInProduction(): Promise<{ id: string; buyer: string; date: string; items: { sku: string; name: string; qty: number }[] }[]> {
+    return delay([]);
   },
   async getDemand(): Promise<DemandGroup[]> {
     return delay(computeDemand());
@@ -194,6 +212,22 @@ const mockApi = {
     t.status = status;
     log("Зміна статусу задачі", `${t.productName} ×${t.qty} → ${TASK_STATUS[status]}`);
     return delay(undefined);
+  },
+  async toggleRoute(id: string, work: string): Promise<{ ok: boolean; routeDone: string[] }> {
+    const t = db.productionTasks.find((x) => x.id === id);
+    if (!t) throw new Error("Задачу не знайдено");
+    const done = new Set(t.routeDone ?? []);
+    if (done.has(work)) done.delete(work); else done.add(work);
+    t.routeDone = [...done];
+    return delay({ ok: true, routeDone: t.routeDone });
+  },
+  async deleteTask(id: string): Promise<void> {
+    const i = db.productionTasks.findIndex((x) => x.id === id);
+    if (i >= 0) db.productionTasks.splice(i, 1);
+    return delay(undefined);
+  },
+  async createTasksFromOrder(orderId: string): Promise<{ created: number; tasks: { sku: string; qty: number; route: string[] }[] }> {
+    return delay({ created: 0, tasks: [] });
   },
   async addExtraCost(id: string, cost: ExtraCost): Promise<void> {
     const t = db.productionTasks.find((x) => x.id === id);
@@ -463,6 +497,10 @@ function mockReceivedFor(purchaseId: string): Record<string, number> {
 // Live-реалізації (типи збігаються з mockApi)
 const liveApi = {
   getSummary: (): Promise<Summary> => req<Summary>("/summary"),
+  getToday: (): Promise<Today> => req<Today>("/today"),
+  mrpStatus: (): Promise<{ status: { started_at?: string; finished_at?: string; result?: string }; snapshots: Record<string, number | null> }> => req("/mrp/status"),
+  mrpRun: (force: boolean) => req<{ ok: boolean; mode: string }>("/mrp/run", { method: "POST", body: JSON.stringify({ force }) }),
+  getInProduction: (): Promise<{ id: string; buyer: string; date: string; items: { sku: string; name: string; qty: number }[] }[]> => req("/in-production"),
   getDemand: (): Promise<DemandGroup[]> => req<DemandGroup[]>("/demand"),
   getJournal: (limit = 300): Promise<JournalEntry[]> => req<JournalEntry[]>(`/journal?limit=${limit}`),
   createProductionTasksFromDemand: async (rows: { sku: string; qty: number }[]): Promise<number> =>
@@ -510,6 +548,16 @@ const liveApi = {
   moveTask: async (id: string, status: TaskStatus): Promise<void> => {
     await req(`/tasks/${id}/move`, { method: "POST", body: JSON.stringify({ status }) });
   },
+  toggleRoute: async (id: string, work: string): Promise<{ ok: boolean; routeDone: string[] }> => {
+    const r = await req<{ ok: boolean; routeDone: string[] }>(`/tasks/${id}/route-toggle`, { method: "POST", body: JSON.stringify({ work }) });
+    void hydrate();
+    return r;
+  },
+  deleteTask: async (id: string): Promise<void> => {
+    await req(`/tasks/${id}`, { method: "DELETE" });
+    void hydrate();
+  },
+  createTasksFromOrder: (orderId: string) => req<{ created: number; tasks: { sku: string; qty: number; route: string[] }[] }>(`/in-production/${orderId}/create-tasks`, { method: "POST", body: "{}" }),
   addExtraCost: async (id: string, cost: ExtraCost): Promise<void> => {
     await req(`/tasks/${id}/extra-cost`, { method: "POST", body: JSON.stringify(cost) });
     void hydrate();

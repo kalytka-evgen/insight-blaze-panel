@@ -12,31 +12,69 @@ export const Route = createFileRoute("/packing")({
   head: () => ({
     meta: [
       { title: "Комплектація — GERTS адмін" },
-      { name: "description", content: "Лист комплектації для складу: що готово відвантажувати і що можна зібрати." },
-      { property: "og:title", content: "Комплектація — GERTS адмін" },
-      { property: "og:description", content: "Лист комплектації замовлень." },
+      { name: "description", content: "Лист відвантаження: що збирати і відправляти, що чекає виробництва." },
     ],
   }),
   component: PackingPage,
 });
 
-const stateLabel = (canShip: boolean) => (canShip ? "✅ Готово відвантажувати" : "🔧 Можна зібрати");
-
 function PackingPage() {
   const s = useQuery({ queryKey: ["packing"], queryFn: api.getPacking });
   const [q, setQ] = useState("");
   const rows = (s.data ?? []).filter((o) => matches(q, o.buyer, o.number));
+  const ready = rows.filter((o) => o.canShip);
+  const waiting = rows.filter((o) => !o.canShip);
+
+  const onExport = () => {
+    const c = orderCsv(rows, (o) => (o.canShip ? "Готово" : "Чекає виробництва"));
+    exportCsv("komplektatsiia.csv", c.headers, c.rows);
+  };
+
   return (
     <>
-      <PageHeader title="Комплектація" context="Замовлення, для яких готова продукція вже є на складі"
-        actions={<ExportButton onClick={() => { const c = orderCsv(rows, (o) => stateLabel(rows.find((r) => r.id === o.id)?.canShip ?? false)); exportCsv("komplektatsiia.csv", c.headers, c.rows); }} />} />
+      <PageHeader
+        title="Комплектація"
+        context="Готово зібрати й відправити — якщо товарів вистачає. Решта чекає виробництва."
+        actions={<ExportButton onClick={onExport} />}
+      />
       <div className="space-y-3 p-4 md:p-6">
         <Toolbar><SearchBox value={q} onChange={setQ} placeholder="Пошук за клієнтом або номером" /></Toolbar>
-        <Panel>
-          {s.isLoading ? <LoadingRows /> : s.isError ? <ErrorState /> : !rows.length ? <EmptyState /> : (
-            <OrderTable rows={rows} extraHeader="Стан" extraCell={(o) => <Pill tone={o.canShip ? "success" : "warning"}>{stateLabel(o.canShip)}</Pill>} />
+
+        <div className="grid gap-4 xl:grid-cols-2">
+        <section>
+          <h2 className="mb-2 text-sm font-medium text-success-foreground">
+            ✅ Готово зібрати і відправити <span className="tabular-nums">({ready.length})</span>
+          </h2>
+          {s.isLoading ? <LoadingRows /> : s.isError ? <ErrorState /> : !ready.length ? (
+            <EmptyState text="Немає замовлень, готових до відвантаження" />
+          ) : (
+            <Panel>
+              <OrderTable
+                rows={ready}
+                extraHeader="Стан"
+                extraCell={() => <Pill tone="success">✅ Відвантажити</Pill>}
+              />
+            </Panel>
           )}
-        </Panel>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-sm font-medium text-warning">
+            🔧 Чекають виробництва <span className="tabular-nums">({waiting.length})</span>
+          </h2>
+          {s.isLoading ? <LoadingRows /> : s.isError ? <ErrorState /> : !waiting.length ? (
+            <EmptyState text="Всі замовлення відвантажувального листа забезпечені" />
+          ) : (
+            <Panel>
+              <OrderTable
+                rows={waiting}
+                extraHeader="Стан"
+                extraCell={() => <Pill tone="warning">🔧 Бракує готових</Pill>}
+              />
+            </Panel>
+          )}
+        </section>
+        </div>
       </div>
     </>
   );

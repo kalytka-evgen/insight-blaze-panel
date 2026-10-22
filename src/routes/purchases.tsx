@@ -10,11 +10,10 @@ import { ItemsEditor, emptyItem, toItems, type EditItem } from "@/components/Ite
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api, PURCHASE_STATUS } from "@/lib/api";
 import { exportCsv, fmtDate, fmtMoney, fmtNum } from "@/lib/format";
-import type { Purchase, PurchaseStatus } from "@/lib/types";
+import type { Purchase, PurchaseStatus, Receipt } from "@/lib/types";
 
 export const Route = createFileRoute("/purchases")({
   validateSearch: (s: Record<string, unknown>): { new?: string } => (typeof s["new"] === "string" ? { new: s["new"] } : {}),
@@ -32,8 +31,10 @@ export const Route = createFileRoute("/purchases")({
 const statusTone: Record<PurchaseStatus, Tone> = { draft: "muted", ordered: "warning", paid: "primary", received: "success" };
 const FLOW: PurchaseStatus[] = ["ordered", "paid", "received"];
 
-function receivedStats(p: Purchase) {
-  const rec = api.receivedFor(p.id);
+function receivedStats(p: Purchase, receipts: Receipt[]) {
+  const rec: Record<string, number> = {};
+  for (const r of receipts.filter((x) => x.purchaseId === p.id))
+    for (const i of r.items) rec[i.sku] = (rec[i.sku] ?? 0) + i.qty;
   const got = p.items.reduce((s, i) => s + Math.min(rec[i.sku] ?? 0, i.qty), 0);
   const all = p.items.reduce((s, i) => s + i.qty, 0);
   return { got, all, rec };
@@ -44,6 +45,8 @@ function PurchasesPage() {
   const navigate = Route.useNavigate();
   const purchases = useQuery({ queryKey: ["purchases"], queryFn: api.getPurchases });
   const contractors = useQuery({ queryKey: ["contractors"], queryFn: api.getContractors });
+  const receiptsQ = useQuery({ queryKey: ["receipts"], queryFn: api.getReceipts });
+  const receipts = receiptsQ.data ?? [];
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [cid, setCid] = useState("");
@@ -62,7 +65,7 @@ function PurchasesPage() {
     <>
       <PageHeader title="Закупки" context="Замовлено → Оплачено → Отримано"
         actions={<>
-          <ExportButton onClick={() => exportCsv("zakupky.csv", ["№", "Дата", "Постачальник", "Позицій", "Сума", "Статус", "Очікувана дата", "Отримано"], rows.map((p) => { const s = receivedStats(p); return [p.number, fmtDate(p.date), name(p.contractorId), p.items.length, p.total, PURCHASE_STATUS[p.status], fmtDate(p.expectedDate), `${s.got} / ${s.all}`]; }))} />
+          <ExportButton onClick={() => exportCsv("zakupky.csv", ["№", "Дата", "Постачальник", "Позицій", "Сума", "Статус", "Очікувана дата", "Отримано"], rows.map((p) => { const s = receivedStats(p, receipts); return [p.number, fmtDate(p.date), name(p.contractorId), p.items.length, p.total, PURCHASE_STATUS[p.status], fmtDate(p.expectedDate), `${s.got} / ${s.all}`]; }))} />
           <Button className="h-10" onClick={() => setFormFor("")}><Plus />Нова закупка</Button>
         </>} />
       <div className="space-y-3 p-4 md:p-6">
@@ -86,7 +89,7 @@ function PurchasesPage() {
               </tr></thead>
               <tbody>
                 {rows.map((p) => {
-                  const s = receivedStats(p);
+                  const s = receivedStats(p, receipts);
                   return (
                     <tr key={p.id} className={`${tr} cursor-pointer`} onClick={() => setOpenId(p.id)}>
                       <td className={`${td} font-medium`}>{p.number}</td>
@@ -122,7 +125,8 @@ function PurchaseDetail({ p, supplier }: { p: Purchase; supplier: string }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const payments = useQuery({ queryKey: ["payments", p.contractorId], queryFn: () => api.getPayments(p.contractorId) });
-  const s = receivedStats(p);
+  const receiptsQ = useQuery({ queryKey: ["receipts"], queryFn: api.getReceipts });
+  const s = receivedStats(p, receiptsQ.data ?? []);
   const set = useMutation({
     mutationFn: (st: PurchaseStatus) => api.updatePurchaseStatus(p.id, st),
     onSuccess: () => { toast.success("Збережено"); qc.invalidateQueries(); },
@@ -188,9 +192,9 @@ function PurchaseForm({ contractorId, onClose }: { contractorId: string; onClose
     onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
   });
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader><DialogTitle>Нова закупка</DialogTitle></DialogHeader>
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader><SheetTitle>Нова закупка</SheetTitle></SheetHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Постачальник">
             <NativeSelect value={f.contractorId} onChange={(e) => setF({ ...f, contractorId: e.target.value })}>
@@ -209,11 +213,11 @@ function PurchaseForm({ contractorId, onClose }: { contractorId: string; onClose
         <div className="text-xs text-muted-foreground">Позиції</div>
         <ItemsEditor rows={items} onChange={setItems} />
         <Field label="Коментар"><Textarea value={f.comment} onChange={(e) => setF({ ...f, comment: e.target.value })} /></Field>
-        <DialogFooter>
+        <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" className="h-10" onClick={onClose}>Скасувати</Button>
           <Button className="h-10" disabled={save.isPending} onClick={() => save.mutate()}>Зберегти</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api } from "@/lib/api";
 import { exportCsv, fmtDate, fmtMoney, fmtNum } from "@/lib/format";
 
@@ -162,9 +162,9 @@ function ReceiptForm({ purchaseId, onClose }: { purchaseId?: string | undefined;
   });
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader><DialogTitle>Новий прихід</DialogTitle></DialogHeader>
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader><SheetTitle>Новий прихід</SheetTitle></SheetHeader>
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Постачальник">
             <NativeSelect value={f.contractorId} onChange={(e) => setF({ ...f, contractorId: e.target.value })}>
@@ -183,11 +183,11 @@ function ReceiptForm({ purchaseId, onClose }: { purchaseId?: string | undefined;
         <div className="text-xs text-muted-foreground">Позиції</div>
         <ItemsEditor rows={items} onChange={setItems} priceLabel="Ціна закупки" />
         <Field label="Коментар"><Textarea value={f.comment} onChange={(e) => setF({ ...f, comment: e.target.value })} /></Field>
-        <DialogFooter>
+        <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" className="h-10" onClick={onClose}>Скасувати</Button>
           <Button className="h-10" disabled={save.isPending} onClick={() => save.mutate()}>Оформити прихід</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

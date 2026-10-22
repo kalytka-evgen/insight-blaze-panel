@@ -152,8 +152,8 @@ function ProductionPage() {
                             title={o.canCreate
                               ? "Створити задачі виробництва за цим заказом"
                               : `Не вистачає: ${o.missing.map((m) => `${m.sku} (${m.need - m.have})`).join(", ")}`}
-                            className={`rounded-md px-2 py-1 text-xs font-medium transition ${o.canCreate
-                              ? "bg-success/20 text-success-foreground ring-1 ring-success/40 hover:bg-success/30"
+                            className={`rounded-md px-3 py-0.5 text-xs font-semibold transition ${o.canCreate
+                              ? "bg-success text-white shadow-sm hover:bg-success/90"
                               : "bg-muted text-muted-foreground"}`}>
                             ⚡ Створити задачі
                           </button>

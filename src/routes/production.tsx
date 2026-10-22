@@ -33,10 +33,14 @@ function ProductionPage() {
   const tasks = useQuery({ queryKey: ["tasks"], queryFn: api.getProductionTasks });
   const inProd = useQuery({ queryKey: ["in-production"], queryFn: api.getInProduction });
   const [q, setQ] = useState("");
+  const [bomOnly, setBomOnly] = useState(true);
+  const shownOrders = (inProd.data ?? []).filter((o) => !bomOnly || o.hasBom);
   const genTasks = useMutation({
     mutationFn: (orderId: string) => api.createTasksFromOrder(orderId),
     onSuccess: (r) => {
-      toast.success(`Створено ${r.created} задач: ${r.tasks.map((t) => `${t.sku} ×${t.qty}`).join(", ")}`);
+      toast.success(r.skipped
+        ? `Створено ${r.created} задач, пропущено ${r.skipped} (вже є)`
+        : `Створено ${r.created} задач: ${r.tasks.map((t) => `${t.sku} ×${t.qty}`).join(", ")}`);
       void qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
@@ -114,11 +118,17 @@ function ProductionPage() {
       </Sheet>
 
       <div className="mt-6 px-4 pb-6 md:px-6">
-        <h2 className="mb-2 text-sm font-medium text-primary">
-          🏭 Закази у виробництві <span className="tabular-nums">({(inProd.data ?? []).length})</span>
-        </h2>
+        <div className="mb-2 flex flex-wrap items-center gap-3">
+          <h2 className="text-sm font-medium text-primary">
+            🏭 Закази у виробництві <span className="tabular-nums">({shownOrders.length})</span>
+          </h2>
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+            <input type="checkbox" checked={bomOnly} onChange={(e) => setBomOnly(e.target.checked)} className="h-3.5 w-3.5" />
+            лише з BOM
+          </label>
+        </div>
         <div className="rounded-lg border bg-card">
-          {inProd.isLoading ? <LoadingRows rows={3} /> : inProd.isError ? <ErrorState /> : !(inProd.data ?? []).length ? (
+          {inProd.isLoading ? <LoadingRows rows={3} /> : inProd.isError ? <ErrorState /> : !shownOrders.length ? (
             <EmptyState text="Немає замовлень, переданих у виробництво" />
           ) : (
             <table className="w-full text-sm">
@@ -131,17 +141,23 @@ function ProductionPage() {
                 </tr>
               </thead>
               <tbody>
-                {(inProd.data ?? []).map((o) => (
-                  <tr key={o.id} className="border-b last:border-0">
+                {shownOrders.map((o) => (
+                  <tr key={o.id} className={`border-b last:border-0 ${!o.hasBom ? "opacity-60" : ""}`}>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         <a href={`https://gerts.keycrm.app/app/orders/view/${o.id}`} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">#{o.id}</a>
-                        <button type="button" disabled={genTasks.isPending}
-                          onClick={() => genTasks.mutate(o.id)}
-                          title="Створити задачі виробництва за цим заказом"
-                          className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-50">
-                          ⚡ Створити задачі
-                        </button>
+                        {o.hasBom && (
+                          <button type="button" disabled={genTasks.isPending || !o.canCreate}
+                            onClick={() => genTasks.mutate(o.id)}
+                            title={o.canCreate
+                              ? "Створити задачі виробництва за цим заказом"
+                              : `Не вистачає: ${o.missing.map((m) => `${m.sku} (${m.need - m.have})`).join(", ")}`}
+                            className={`rounded-md px-2 py-1 text-xs font-medium transition ${o.canCreate
+                              ? "bg-success/20 text-success-foreground ring-1 ring-success/40 hover:bg-success/30"
+                              : "bg-muted text-muted-foreground"}`}>
+                            ⚡ Створити задачі
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="px-3 py-2">{o.buyer}</td>

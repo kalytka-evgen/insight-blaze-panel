@@ -77,7 +77,7 @@ function ReportsPage() {
           <h2 className="text-sm font-medium">ABC-аналіз продажів</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">A — ключові позиції (80% виручки), B — середні (15%), C — рідкісні (5%). A-товари контролюємо найуважніше.</p>
           <div className="mt-3 flex flex-wrap gap-2 text-sm">
-            <span className="rounded-lg bg-success-foreground/15 px-3 py-1.5 font-semibold text-success-foreground">A · {abcCounts.A} товарів</span>
+            <span className="rounded-lg bg-success px-3 py-1.5 font-semibold text-white">A · {abcCounts.A} товарів</span>
             <span className="rounded-lg bg-primary/10 px-3 py-1.5 font-semibold text-primary">B · {abcCounts.B} товарів</span>
             <span className="rounded-lg bg-muted px-3 py-1.5 font-semibold text-muted-foreground">C · {abcCounts.C} товарів</span>
           </div>

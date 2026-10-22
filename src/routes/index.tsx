@@ -41,7 +41,7 @@ function SyncBlock() {
       <div className="mr-auto text-sm">
         <span className="text-muted-foreground">Синхронізація з CRM: </span>
         <span className="font-medium">{finished || "ще не було"}</span>
-        <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${running ? "bg-warning/15 text-warning" : result === "ok" ? "bg-success-foreground/15 text-success-foreground" : "bg-destructive/15 text-destructive"}`}>
+        <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${running ? "bg-warning/15 text-warning" : result === "ok" ? "bg-success text-white" : "bg-destructive/15 text-destructive"}`}>
           {running ? "виконується…" : result === "ok" ? "ok" : (result || "немає даних")}
         </span>
       </div>

@@ -65,7 +65,7 @@ function WorkPage() {
         {route.map((w) => (
           <button key={w} type="button" disabled={toggle.isPending}
             onClick={() => toggle.mutate({ id: t.id, work: w })}
-            className={`flex h-14 w-full items-center justify-between rounded-xl border px-4 text-base font-medium transition-colors ${done.has(w) ? "border-success-foreground/40 bg-success-foreground/10 text-success-foreground" : "border-border bg-card hover:bg-accent"}`}>
+            className={`flex h-14 w-full items-center justify-between rounded-xl border px-4 text-base font-medium transition-colors ${done.has(w) ? "border-success bg-success text-white" : "border-border bg-card hover:bg-accent"}`}>
             <span>{w}</span>
             {done.has(w) && <Check className="h-5 w-5" />}
           </button>

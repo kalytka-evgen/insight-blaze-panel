@@ -114,7 +114,7 @@ function MinStockPage() {
                       <td className="px-3 py-1.5">
                         {isBelowMin(p)
                           ? <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">нижче мінімуму</span>
-                          : <span className="rounded-full bg-success/20 px-2 py-0.5 text-[11px] font-medium text-success-foreground">ок</span>}
+                          : <span className="rounded-full bg-success px-2 py-0.5 text-[11px] font-medium text-white">ок</span>}
                       </td>
                       <td className="whitespace-nowrap px-3 py-1.5 text-right">
                         {isEd ? (

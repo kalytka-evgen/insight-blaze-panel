@@ -94,7 +94,7 @@ function ProductionPage() {
                           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
                             <Pill tone="primary">×{fmtNum(t.qty)}</Pill>
                             {(t.route ?? []).map((w) => (
-                              <span key={w} className={`rounded-full px-2 py-0.5 ${(t.routeDone ?? []).includes(w) ? "bg-success-foreground/15 text-success-foreground" : "bg-muted text-muted-foreground"}`}>{w}</span>
+                              <span key={w} className={`rounded-full px-2 py-0.5 ${(t.routeDone ?? []).includes(w) ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}>{w}</span>
                             ))}
                             {t.due && <Pill tone="warning">до {t.due.slice(5)}</Pill>}
                             {t.assignee && <Pill>{t.assignee}</Pill>}

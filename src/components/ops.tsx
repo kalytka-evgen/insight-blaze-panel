@@ -35,7 +35,7 @@ export function NativeSelect({ className, children, ...p }: SelectHTMLAttributes
 const tones = {
   muted: "bg-muted text-muted-foreground",
   primary: "bg-primary/20 text-primary",
-  success: "bg-success/20 text-success-foreground",
+  success: "bg-success text-white",
   warning: "bg-warning/15 text-warning",
   danger: "bg-destructive/20 text-destructive",
 } as const;

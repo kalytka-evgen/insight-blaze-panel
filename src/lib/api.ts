@@ -243,7 +243,7 @@ const mockApi = {
     if (!t) throw new Error("Задачу не знайдено");
     return estimate(t);
   },
-  async assembleTask(id: string): Promise<ProductionTask> {
+  async assembleTask(id: string, qty?: number): Promise<ProductionTask> {
     const t = db.productionTasks.find((x) => x.id === id);
     if (!t) throw new Error("Задачу не знайдено");
     if (t.status === "done") throw new Error("Задача вже виконана");
@@ -577,8 +577,8 @@ const liveApi = {
     const qty = Math.max(1, t.qty);
     return { lines, materialsCost: 0, extraCost, unitCost: Math.round((extraCost / qty) * 100) / 100 };
   },
-  assembleTask: async (id: string): Promise<ProductionTask> => {
-    const r = await req<{ ok: boolean; unitCost: number }>(`/tasks/${id}/assemble`, { method: "POST" });
+  assembleTask: async (id: string, qty?: number): Promise<ProductionTask> => {
+    const r = await req<{ ok: boolean; unitCost: number; assembled: number; remaining: number; closed: boolean }>(`/tasks/${id}/assemble`, { method: "POST", body: JSON.stringify(qty ? { qty } : {}) });
     void hydrate();
     return r as unknown as ProductionTask;
   },

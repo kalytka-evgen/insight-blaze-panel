@@ -182,7 +182,9 @@ function TaskDetail({ t, onMove, onClose }: { t: ProductionTask; onMove: (s: Tas
   const qc = useQueryClient();
   const est = api.estimateTask(t.id);
   const short = est.lines.some((l) => l.shortage > 0);
+  const remaining = Math.max(0, t.qty - (t.doneQty ?? 0));
   const [cost, setCost] = useState({ name: "", amount: "" });
+  const [aqty, setAqty] = useState<number>(remaining);
   const [confirm, setConfirm] = useState(false);
   const addCost = useMutation({
     mutationFn: () => api.addExtraCost(t.id, { name: cost.name, amount: parseNum(cost.amount) }),
@@ -190,8 +192,15 @@ function TaskDetail({ t, onMove, onClose }: { t: ProductionTask; onMove: (s: Tas
     onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
   });
   const assemble = useMutation({
-    mutationFn: () => api.assembleTask(t.id),
-    onSuccess: (r) => { toast.success(`Збережено: зібрано ${r.productName} ×${r.qty}`); qc.invalidateQueries(); },
+    mutationFn: () => api.assembleTask(t.id, aqty > 0 && aqty < remaining ? aqty : undefined),
+    onSuccess: (r: unknown) => {
+      const res = r as { assembled?: number; remaining?: number; closed?: boolean };
+      toast.success(res.closed === false
+        ? `Зібрано ${res.assembled}, залишилось ${res.remaining}`
+        : `Готово: ${t.productName} ×${res.assembled ?? aqty}`);
+      setConfirm(false);
+      qc.invalidateQueries();
+    },
     onError: (e: Error) => toast.error(`Помилка: ${e.message}`),
   });
   const delTask = useMutation({
@@ -266,8 +275,16 @@ function TaskDetail({ t, onMove, onClose }: { t: ProductionTask; onMove: (s: Tas
       </div>
 
       <Confirm open={confirm} onOpenChange={setConfirm} confirmLabel="Виконати збірку" onConfirm={() => assemble.mutate()}
-        description={`Списання ${est.lines.length} комплектуючих і оприбуткування виробу ×${fmtNum(t.qty)}.`}>
+        description={`Списання ${est.lines.length} комплектуючих і оприбуткування виробу ×${fmtNum(aqty > 0 && aqty < remaining ? aqty : remaining)}.`}>
         <div className="space-y-3 text-sm">
+          {remaining > 1 && (
+            <label className="flex items-center gap-2">
+              <span className="text-muted-foreground">Зібрано зараз:</span>
+              <Input type="number" min={1} max={remaining} value={aqty} onChange={(e) => setAqty(Math.max(1, Math.min(remaining, parseInt(e.target.value) || 1)))}
+                className="h-9 w-24" />
+              <span className="text-xs text-muted-foreground">з {remaining}</span>
+            </label>
+          )}
           {est.lines.map((l) => (
             <div key={l.sku}>
               <div className="flex justify-between font-medium"><span>{l.name}</span><span className="tabular-nums">−{fmtNum(l.qty)}</span></div>
@@ -278,7 +295,7 @@ function TaskDetail({ t, onMove, onClose }: { t: ProductionTask; onMove: (s: Tas
               ))}
             </div>
           ))}
-          <div className="flex justify-between border-t pt-2"><span>Оприбуткування: {t.productName}</span><span className="tabular-nums">+{fmtNum(t.qty)}</span></div>
+          <div className="flex justify-between border-t pt-2"><span>Оприбуткування: {t.productName}</span><span className="tabular-nums">+{fmtNum(aqty > 0 && aqty < remaining ? aqty : remaining)}</span></div>
           <div className="flex justify-between font-semibold"><span>Собівартість одиниці</span><span className="tabular-nums">{fmtMoney(est.unitCost)}</span></div>
         </div>
       </Confirm>
